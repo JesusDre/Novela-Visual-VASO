@@ -1,99 +1,116 @@
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.contrib.sessions.models import Session
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from django.utils import timezone
-from .models import Usuario
+from .models import Usuario, Rol
 import hashlib
+import json
 
-# Create your views here.
 
+@csrf_exempt
+@require_http_methods(["POST"])
 def login_view(request):
-    """Vista para el login de usuarios"""
-    if request.method == 'POST':
-        correo = request.POST.get('correo')
-        contrasena = request.POST.get('contrasena')
-        
-        try:
-            # Buscar usuario por correo
-            usuario = Usuario.objects.get(correo=correo, activo=True)
-            
-            # Verificar contraseña (asumiendo que se guarda con hash)
-            # Si guardas la contraseña en texto plano, solo compara: usuario.contrasena == contrasena
-            contrasena_hash = hashlib.sha256(contrasena.encode()).hexdigest()
-            
-            if usuario.contrasena == contrasena_hash or usuario.contrasena == contrasena:
-                # Guardar información del usuario en la sesión
-                request.session['usuario_id'] = usuario.id_usuario
-                request.session['usuario_nombre'] = usuario.nombre
-                request.session['usuario_correo'] = usuario.correo
-                request.session['usuario_rol'] = usuario.rol.nombre_rol
-                
-                messages.success(request, f'¡Bienvenido {usuario.nombre}!')
-                return redirect('home')
-            else:
-                messages.error(request, 'Correo o contraseña incorrectos')
-        except Usuario.DoesNotExist:
-            messages.error(request, 'Correo o contraseña incorrectos')
-    
-    return render(request, 'login.html')
+    """API endpoint para login de usuarios"""
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
 
-def logout_view(request):
-    """Vista para cerrar sesión"""
-    request.session.flush()
-    messages.success(request, 'Has cerrado sesión exitosamente')
-    return redirect('login')
+    correo = data.get('correo', '').strip()
+    contrasena = data.get('contrasena', '')
 
-def home_view(request):
-    """Vista principal - requiere estar autenticado"""
-    if 'usuario_id' not in request.session:
-        messages.warning(request, 'Debes iniciar sesión para acceder')
-        return redirect('login')
-    
-    context = {
-        'usuario_nombre': request.session.get('usuario_nombre'),
-        'usuario_correo': request.session.get('usuario_correo'),
-        'usuario_rol': request.session.get('usuario_rol'),
-    }
-    return render(request, 'home.html', context)
+    if not correo or not contrasena:
+        return JsonResponse({'error': 'Correo y contraseña son requeridos'}, status=400)
 
-def registro_view(request):
-    """Vista para registro de nuevos usuarios"""
-    if request.method == 'POST':
-        nombre = request.POST.get('nombre')
-        apellido_paterno = request.POST.get('apellido_paterno')
-        apellido_materno = request.POST.get('apellido_materno')
-        correo = request.POST.get('correo')
-        contrasena = request.POST.get('contrasena')
-        
-        # Verificar si el correo ya existe
-        if Usuario.objects.filter(correo=correo).exists():
-            messages.error(request, 'El correo ya está registrado')
-            return render(request, 'registro.html')
-        
-        # Crear hash de la contraseña
+    try:
+        usuario = Usuario.objects.get(correo=correo, activo=True)
         contrasena_hash = hashlib.sha256(contrasena.encode()).hexdigest()
-        
-        # Obtener o crear rol por defecto (usuario normal)
-        from .models import Rol
-        rol_usuario, created = Rol.objects.get_or_create(
-            nombre_rol='Usuario',
-            defaults={'nombre_rol': 'Usuario'}
-        )
-        
-        # Crear nuevo usuario
-        nuevo_usuario = Usuario.objects.create(
-            nombre=nombre,
-            apellido_paterno=apellido_paterno,
-            apellido_materno=apellido_materno,
-            correo=correo,
-            contrasena=contrasena_hash,
-            fecha_registro=timezone.now(),
-            activo=True,
-            rol=rol_usuario
-        )
-        
-        messages.success(request, 'Cuenta creada exitosamente. Ya puedes iniciar sesión')
-        return redirect('login')
-    
-    return render(request, 'registro.html')
+
+        if usuario.contrasena == contrasena_hash or usuario.contrasena == contrasena:
+            request.session['usuario_id'] = usuario.id_usuario
+            request.session['usuario_nombre'] = usuario.nombre
+            request.session['usuario_correo'] = usuario.correo
+            request.session['usuario_rol'] = usuario.rol.nombre_rol
+
+            return JsonResponse({
+                'mensaje': f'¡Bienvenido {usuario.nombre}!',
+                'usuario': {
+                    'id': usuario.id_usuario,
+                    'nombre': usuario.nombre,
+                    'correo': usuario.correo,
+                    'rol': usuario.rol.nombre_rol,
+                }
+            })
+        else:
+            return JsonResponse({'error': 'Correo o contraseña incorrectos'}, status=401)
+    except Usuario.DoesNotExist:
+        return JsonResponse({'error': 'Correo o contraseña incorrectos'}, status=401)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def logout_view(request):
+    """API endpoint para cerrar sesión"""
+    request.session.flush()
+    return JsonResponse({'mensaje': 'Sesión cerrada exitosamente'})
+
+
+@require_http_methods(["GET"])
+def me_view(request):
+    """API endpoint para obtener datos del usuario autenticado"""
+    if 'usuario_id' not in request.session:
+        return JsonResponse({'error': 'No autenticado'}, status=401)
+
+    return JsonResponse({
+        'usuario': {
+            'id': request.session.get('usuario_id'),
+            'nombre': request.session.get('usuario_nombre'),
+            'correo': request.session.get('usuario_correo'),
+            'rol': request.session.get('usuario_rol'),
+        }
+    })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def registro_view(request):
+    """API endpoint para registro de nuevos usuarios"""
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    nombre = data.get('nombre', '').strip()
+    apellido_paterno = data.get('apellido_paterno', '').strip()
+    apellido_materno = data.get('apellido_materno', '').strip()
+    correo = data.get('correo', '').strip()
+    contrasena = data.get('contrasena', '')
+
+    if not nombre or not correo or not contrasena:
+        return JsonResponse({'error': 'Nombre, correo y contraseña son requeridos'}, status=400)
+
+    if len(contrasena) < 6:
+        return JsonResponse({'error': 'La contraseña debe tener al menos 6 caracteres'}, status=400)
+
+    if Usuario.objects.filter(correo=correo).exists():
+        return JsonResponse({'error': 'El correo ya está registrado'}, status=409)
+
+    contrasena_hash = hashlib.sha256(contrasena.encode()).hexdigest()
+
+    rol_usuario, _ = Rol.objects.get_or_create(
+        nombre_rol='Usuario',
+        defaults={'nombre_rol': 'Usuario'}
+    )
+
+    Usuario.objects.create(
+        nombre=nombre,
+        apellido_paterno=apellido_paterno,
+        apellido_materno=apellido_materno,
+        correo=correo,
+        contrasena=contrasena_hash,
+        fecha_registro=timezone.now(),
+        activo=True,
+        rol=rol_usuario
+    )
+
+    return JsonResponse({'mensaje': 'Cuenta creada exitosamente'}, status=201)

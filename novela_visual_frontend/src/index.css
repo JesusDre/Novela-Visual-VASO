@@ -1,0 +1,110 @@
+/* ── Bootstrap overrides with custom palette ── */
+/*
+  #0A2463  → primary (azul oscuro)
+  #3E92CC  → secondary / accent (azul claro)
+  #FFFAFF  → light (blanco cálido)
+  #D8315B  → danger / accent-alt (rosa-rojo)
+  #1E1B18  → dark (casi negro)
+*/
+
+:root {
+  --bs-primary: #0A2463;
+  --bs-primary-rgb: 10, 36, 99;
+  --bs-secondary: #3E92CC;
+  --bs-secondary-rgb: 62, 146, 204;
+  --bs-light: #FFFAFF;
+  --bs-light-rgb: 255, 250, 255;
+  --bs-danger: #D8315B;
+  --bs-danger-rgb: 216, 49, 91;
+  --bs-dark: #1E1B18;
+  --bs-dark-rgb: 30, 27, 24;
+  --bs-body-bg: #FFFAFF;
+  --bs-body-color: #1E1B18;
+}
+
+body {
+  background-color: #FFFAFF;
+  color: #1E1B18;
+}
+
+/* ── Primary button ── */
+.btn-primary {
+  background-color: #0A2463;
+  border-color: #0A2463;
+  color: #FFFAFF;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: #081d50;
+  border-color: #081d50;
+  color: #FFFAFF;
+}
+.btn-primary:disabled {
+  background-color: #0A2463;
+  border-color: #0A2463;
+  opacity: 0.55;
+}
+
+/* ── Outline buttons ── */
+.btn-outline-light {
+  border-color: rgba(255, 250, 255, 0.5);
+  color: #FFFAFF;
+}
+.btn-outline-light:hover {
+  background-color: rgba(255, 250, 255, 0.15);
+  color: #FFFAFF;
+}
+
+.btn-outline-secondary {
+  border-color: #3E92CC;
+  color: #3E92CC;
+}
+.btn-outline-secondary:hover {
+  background-color: #3E92CC;
+  border-color: #3E92CC;
+  color: #FFFAFF;
+}
+
+/* ── Navbar ── */
+.bg-primary {
+  background-color: #0A2463 !important;
+}
+.bg-dark-primary {
+  background-color: #1E1B18 !important;
+}
+
+/* ── Links ── */
+.text-accent {
+  color: #D8315B !important;
+  text-decoration: none;
+}
+.text-accent:hover {
+  color: #b52749 !important;
+  text-decoration: underline;
+}
+
+.text-primary {
+  color: #0A2463 !important;
+}
+
+/* ── Cards ── */
+.bg-light {
+  background-color: #FFFAFF !important;
+}
+
+.card {
+  border-radius: 10px;
+}
+
+/* ── Form focus ── */
+.form-control:focus {
+  border-color: #3E92CC;
+  box-shadow: 0 0 0 0.2rem rgba(62, 146, 204, 0.25);
+}
+
+/* ── Alert danger ── */
+.alert-danger {
+  background-color: #fdf0f3;
+  border-color: #D8315B;
+  color: #D8315B;
+}
