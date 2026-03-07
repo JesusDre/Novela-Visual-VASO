@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Catalog from './pages/Catalog';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-import { getMe } from './services/authService';
+import { getMe, logout as logoutApi } from './services/authService';
 
 export default function App() {
   const [usuario, setUsuario] = useState(null);
   const [checking, setChecking] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     getMe()
@@ -19,19 +21,26 @@ export default function App() {
       .finally(() => setChecking(false));
   }, []);
 
-  if (checking) return null;
+  async function handleLogout() {
+    try { await logoutApi(); } catch { /* ignore */ }
+    setUsuario(null);
+    navigate('/');
+  }
 
-  const registered = location.state?.registered;
+  if (checking) return null;
 
   return (
     <Routes>
+      {/* Catálogo público — página principal */}
+      <Route path="/" element={<Catalog usuario={usuario} onLogout={handleLogout} />} />
+
       <Route
         path="/login"
         element={
           usuario ? (
             <Navigate to={usuario.rol === 'Administrador' ? '/admin' : '/dashboard'} replace />
           ) : (
-            <Login onLogin={setUsuario} registered={registered} />
+            <Login onLogin={setUsuario} />
           )
         }
       />
@@ -40,19 +49,19 @@ export default function App() {
         path="/dashboard"
         element={
           <ProtectedRoute usuario={usuario}>
-            <UserDashboard usuario={usuario} onLogout={() => setUsuario(null)} />
+            <UserDashboard usuario={usuario} onLogout={handleLogout} />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/admin"
+        path="/admin/*"
         element={
           <ProtectedRoute usuario={usuario} requiredRole="Administrador">
-            <AdminDashboard usuario={usuario} onLogout={() => setUsuario(null)} />
+            <AdminDashboard usuario={usuario} onLogout={handleLogout} />
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

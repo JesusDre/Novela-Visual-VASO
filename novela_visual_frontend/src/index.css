@@ -108,3 +108,36 @@ body {
   border-color: #D8315B;
   color: #D8315B;
 }
+
+/* ── Accent button ── */
+.btn-accent {
+  background-color: #D8315B;
+  border-color: #D8315B;
+  color: #FFFAFF;
+}
+.btn-accent:hover {
+  background-color: #b52749;
+  border-color: #b52749;
+  color: #FFFAFF;
+}
+
+/* ── Danger outline with palette ── */
+.btn-outline-danger {
+  border-color: #D8315B;
+  color: #D8315B;
+}
+.btn-outline-danger:hover {
+  background-color: #D8315B;
+  border-color: #D8315B;
+  color: #FFFAFF;
+}
+
+/* ── Catalog card hover ── */
+.catalog-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+.catalog-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(10, 36, 99, 0.15) !important;
+}

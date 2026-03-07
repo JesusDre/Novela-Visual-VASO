@@ -1,8 +1,12 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { logout } from '../services/authService';
+import ManageUsers from './ManageUsers';
+import ManageStories from './ManageStories';
 
 export default function AdminDashboard({ usuario, onLogout }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isRoot = location.pathname === '/admin';
 
   async function handleLogout() {
     try {
@@ -17,55 +21,44 @@ export default function AdminDashboard({ usuario, onLogout }) {
   return (
     <div className="min-vh-100 d-flex flex-column bg-light">
       <nav className="navbar navbar-dark bg-dark-primary px-3">
-        <span className="navbar-brand fw-bold">Novela Visual — Admin</span>
+        <Link to="/admin" className="navbar-brand fw-bold text-decoration-none">Novela Visual — Admin</Link>
         <div className="d-flex align-items-center gap-3">
+          <Link to="/" className="btn btn-sm btn-outline-light">Catálogo</Link>
           <span className="text-white-50 small">{usuario.nombre}</span>
           <button className="btn btn-sm btn-outline-light" onClick={handleLogout}>Cerrar sesión</button>
         </div>
       </nav>
 
-      <main className="container py-4" style={{ maxWidth: 720 }}>
-        <h1 className="h4 fw-bold text-dark mb-4">Panel de administración</h1>
+      <main className="container py-4" style={{ maxWidth: 900 }}>
+        {isRoot ? (
+          <>
+            <h1 className="h4 fw-bold text-dark mb-4">Panel de administración</h1>
 
-        <div className="card border-0 shadow-sm mb-4">
-          <div className="card-body">
-            <h2 className="card-title h6 text-uppercase text-muted fw-semibold mb-3">Tu perfil</h2>
-            <div className="row g-2">
-              <div className="col-4 text-muted small">Nombre</div>
-              <div className="col-8 small">{usuario.nombre}</div>
-              <div className="col-4 text-muted small">Correo</div>
-              <div className="col-8 small">{usuario.correo}</div>
-              <div className="col-4 text-muted small">Rol</div>
-              <div className="col-8 small">{usuario.rol}</div>
+            <div className="card border-0 shadow-sm mb-4">
+              <div className="card-body">
+                <h2 className="card-title h6 text-uppercase text-muted fw-semibold mb-3">Tu perfil</h2>
+                <div className="row g-2">
+                  <div className="col-4 text-muted small">Nombre</div>
+                  <div className="col-8 small">{usuario.nombre}</div>
+                  <div className="col-4 text-muted small">Correo</div>
+                  <div className="col-8 small">{usuario.correo}</div>
+                  <div className="col-4 text-muted small">Rol</div>
+                  <div className="col-8 small">{usuario.rol}</div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className="row g-3 mb-4">
-          <div className="col-4">
-            <div className="card border-0 shadow-sm text-center p-3">
-              <h3 className="small text-uppercase text-muted fw-semibold mb-1">Usuarios</h3>
-              <p className="h4 fw-bold text-primary mb-0">—</p>
+            <div className="d-flex gap-2">
+              <Link to="/admin/usuarios" className="btn btn-primary">Gestionar usuarios</Link>
+              <Link to="/admin/historias" className="btn btn-outline-secondary">Gestionar historias</Link>
             </div>
-          </div>
-          <div className="col-4">
-            <div className="card border-0 shadow-sm text-center p-3">
-              <h3 className="small text-uppercase text-muted fw-semibold mb-1">Historias</h3>
-              <p className="h4 fw-bold text-primary mb-0">—</p>
-            </div>
-          </div>
-          <div className="col-4">
-            <div className="card border-0 shadow-sm text-center p-3">
-              <h3 className="small text-uppercase text-muted fw-semibold mb-1">Publicadas</h3>
-              <p className="h4 fw-bold text-primary mb-0">—</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="d-flex gap-2">
-          <button className="btn btn-primary">Gestionar usuarios</button>
-          <button className="btn btn-outline-secondary">Gestionar historias</button>
-        </div>
+          </>
+        ) : (
+          <Routes>
+            <Route path="usuarios" element={<ManageUsers />} />
+            <Route path="historias" element={<ManageStories />} />
+          </Routes>
+        )}
       </main>
     </div>
   );

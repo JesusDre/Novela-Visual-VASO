@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { logout } from '../services/authService';
 
 export default function UserDashboard({ usuario, onLogout }) {
@@ -18,7 +18,8 @@ export default function UserDashboard({ usuario, onLogout }) {
     <div className="min-vh-100 d-flex flex-column bg-light">
       <nav className="navbar navbar-dark bg-primary px-3">
         <span className="navbar-brand fw-bold">Novela Visual</span>
-        <div className="d-flex align-items-center gap-3">
+        <div className="d-flex align-items-center gap-2">
+          <Link to="/" className="btn btn-sm btn-outline-light">Catálogo</Link>
           <span className="text-white-50 small">{usuario.nombre}</span>
           <button className="btn btn-sm btn-outline-light" onClick={handleLogout}>Cerrar sesión</button>
         </div>
@@ -43,7 +44,7 @@ export default function UserDashboard({ usuario, onLogout }) {
 
         <div className="d-flex gap-2">
           <button className="btn btn-primary">Mis Historias</button>
-          <button className="btn btn-outline-secondary">Explorar</button>
+          <Link to="/" className="btn btn-outline-secondary">Explorar</Link>
         </div>
       </main>
     </div>

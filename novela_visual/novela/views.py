@@ -2,9 +2,18 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
-from .models import Usuario, Rol
+from .models import Usuario, Rol, Historia
 import hashlib
 import json
+
+
+def _require_admin(request):
+    """Verifica que el usuario en sesión sea Administrador. Retorna None si ok, o JsonResponse de error."""
+    if 'usuario_id' not in request.session:
+        return JsonResponse({'error': 'No autenticado'}, status=401)
+    if request.session.get('usuario_rol') != 'Administrador':
+        return JsonResponse({'error': 'Permisos insuficientes'}, status=403)
+    return None
 
 
 @csrf_exempt
@@ -114,3 +123,106 @@ def registro_view(request):
     )
 
     return JsonResponse({'mensaje': 'Cuenta creada exitosamente'}, status=201)
+
+
+# ── Endpoints públicos ──
+
+@require_http_methods(["GET"])
+def historias_publicadas_view(request):
+    """Historias publicadas — acceso público, no requiere login."""
+    historias = Historia.objects.filter(publicada=True).select_related('creador')
+    data = [
+        {
+            'id': h.id_historia,
+            'titulo': h.titulo,
+            'descripcion': h.descripcion or '',
+            'fecha_creacion': h.fecha_creacion.isoformat() if h.fecha_creacion else None,
+            'creador': h.creador.nombre,
+        }
+        for h in historias
+    ]
+    return JsonResponse({'historias': data})
+
+
+# ── Endpoints de administración ──
+
+@require_http_methods(["GET"])
+def usuarios_list_view(request):
+    """Lista todos los usuarios (solo admin)."""
+    err = _require_admin(request)
+    if err:
+        return err
+    usuarios = Usuario.objects.select_related('rol').all()
+    data = [
+        {
+            'id': u.id_usuario,
+            'nombre': u.nombre,
+            'correo': u.correo,
+            'rol': u.rol.nombre_rol,
+            'activo': u.activo,
+            'fecha_registro': u.fecha_registro.isoformat() if u.fecha_registro else None,
+        }
+        for u in usuarios
+    ]
+    return JsonResponse({'usuarios': data})
+
+
+@csrf_exempt
+@require_http_methods(["PATCH"])
+def usuario_toggle_view(request, id_usuario):
+    """Activa/desactiva un usuario (solo admin)."""
+    err = _require_admin(request)
+    if err:
+        return err
+    try:
+        usuario = Usuario.objects.get(id_usuario=id_usuario)
+    except Usuario.DoesNotExist:
+        return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+    usuario.activo = not usuario.activo
+    usuario.save(update_fields=['activo'])
+    return JsonResponse({
+        'mensaje': f'Usuario {"activado" if usuario.activo else "desactivado"}',
+        'activo': usuario.activo,
+    })
+
+
+@require_http_methods(["GET"])
+def historias_list_view(request):
+    """Lista todas las historias (solo admin)."""
+    err = _require_admin(request)
+    if err:
+        return err
+    historias = Historia.objects.select_related('creador').all()
+    data = [
+        {
+            'id': h.id_historia,
+            'titulo': h.titulo,
+            'descripcion': h.descripcion or '',
+            'publicada': h.publicada,
+            'fecha_creacion': h.fecha_creacion.isoformat() if h.fecha_creacion else None,
+            'creador': h.creador.nombre,
+        }
+        for h in historias
+    ]
+    return JsonResponse({'historias': data})
+
+
+@csrf_exempt
+@require_http_methods(["PATCH"])
+def historia_toggle_view(request, id_historia):
+    """Publica/despublica una historia (solo admin)."""
+    err = _require_admin(request)
+    if err:
+        return err
+    try:
+        historia = Historia.objects.get(id_historia=id_historia)
+    except Historia.DoesNotExist:
+        return JsonResponse({'error': 'Historia no encontrada'}, status=404)
+
+    historia.publicada = not historia.publicada
+    historia.save(update_fields=['publicada'])
+    return JsonResponse({
+        'mensaje': f'Historia {"publicada" if historia.publicada else "despublicada"}',
+        'publicada': historia.publicada,
+    })
