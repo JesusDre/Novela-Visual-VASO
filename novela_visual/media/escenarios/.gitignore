@@ -1,0 +1,11 @@
+# Ignorar todas las imágenes de escenarios
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+
+# Mantener la carpeta pero ignorar su contenido
+*
+!.gitignore

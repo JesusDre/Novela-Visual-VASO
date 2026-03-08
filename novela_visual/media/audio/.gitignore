@@ -1,0 +1,11 @@
+# Ignorar todos los archivos de audio
+*.mp3
+*.wav
+*.ogg
+*.m4a
+*.aac
+*.flac
+
+# Mantener la carpeta pero ignorar su contenido
+*
+!.gitignore

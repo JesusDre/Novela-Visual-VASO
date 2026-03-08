@@ -43,7 +43,7 @@ export default function UserDashboard({ usuario, onLogout }) {
         </div>
 
         <div className="d-flex gap-2">
-          <button className="btn btn-primary">Mis Historias</button>
+          <Link to="/mis-historias" className="btn btn-primary">Mis Historias</Link>
           <Link to="/" className="btn btn-outline-secondary">Explorar</Link>
         </div>
       </main>

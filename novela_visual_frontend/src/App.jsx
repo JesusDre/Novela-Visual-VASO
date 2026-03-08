@@ -5,6 +5,10 @@ import Register from './pages/Register';
 import Catalog from './pages/Catalog';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import MyStories from './pages/MyStories';
+import CreateStory from './pages/CreateStory';
+import EditStory from './pages/EditStory';
+import StoryPlayer from './pages/StoryPlayer';
 import ProtectedRoute from './components/ProtectedRoute';
 import { getMe, logout as logoutApi } from './services/authService';
 
@@ -50,6 +54,38 @@ export default function App() {
         element={
           <ProtectedRoute usuario={usuario}>
             <UserDashboard usuario={usuario} onLogout={handleLogout} />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mis-historias"
+        element={
+          <ProtectedRoute usuario={usuario}>
+            <MyStories />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/historias/crear"
+        element={
+          <ProtectedRoute usuario={usuario}>
+            <CreateStory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/historias/:id/editar"
+        element={
+          <ProtectedRoute usuario={usuario}>
+            <EditStory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/historias/:id/jugar"
+        element={
+          <ProtectedRoute usuario={usuario}>
+            <StoryPlayer />
           </ProtectedRoute>
         }
       />
