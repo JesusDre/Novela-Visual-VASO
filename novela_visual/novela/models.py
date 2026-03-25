@@ -36,6 +36,7 @@ class Historia(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=False)
     publicada = models.BooleanField(default=False)
     creador = models.ForeignKey(Usuario, on_delete=models.CASCADE, db_column="id_creador")
+    portada = models.ForeignKey("Imagen", on_delete=models.SET_NULL, db_column="id_portada", blank=True, null=True, related_name="historias_portada")
     nodo_inicio = models.ForeignKey("Nodo", on_delete=models.SET_NULL, db_column="id_nodo_inicio" ,blank=True, null=True, related_name="es_inicio_de")
 
     class Meta:

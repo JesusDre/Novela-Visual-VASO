@@ -1,0 +1,225 @@
+PLAN DE COORDINACION DE COMMITS - Novela-Visual-VASO
+
+Supuestos para la carga
+- Se incluyen archivos de codigo, configuracion, documentacion y assets de media.
+- Se excluyen caches y build artifacts (por ejemplo: __pycache__, node_modules, dist).
+
+Resumen de carga (cantidad de archivos)
+- Max: 18
+- Tom: 16
+- Fredy: 16
+- Chucho: 15
+- Ali: 14
+
+============================
+ASIGNACION ARCHIVO POR ARCHIVO
+============================
+
+[Chucho]
+- novela_visual/novela/models.py
+- novela_visual/novela/admin.py
+- novela_visual/novela/tests.py
+- novela_visual/novela/apps.py
+- novela_visual/novela/migrations/0001_initial.py
+- novela_visual/novela/migrations/0002_historia_portada.py
+- novela_visual/novela/migrations/__init__.py
+- novela_visual/media/escenarios/3b8fb0f8-a5e8-4b14-abbe-36c484fa14e6.png
+- novela_visual/media/escenarios/58e04f94-dd5b-401e-aeac-0e32d8032c01.png
+- novela_visual/media/escenarios/64aba190-0466-4bce-a8a6-8202c764f975.png
+- novela_visual/media/escenarios/a96d6ae5-e8a4-45a1-8617-5e7b1cffdcd7.png
+- novela_visual/media/escenarios/e2afcb86-0eb5-4086-9019-04e918fc4868.png
+- novela_visual/media/escenarios/f1da7584-145c-472e-b083-91f275aaa8aa.png
+- novela_visual/media/escenarios/4221dc08-8c8f-4e26-9baa-e5d04e14ca8b.png
+- novela_visual/media/personajes/a20dc904-2485-4f0f-9f96-c1300f0661bd.png
+
+[Tom]
+- novela_visual/manage.py
+- novela_visual/novela/urls.py
+- novela_visual/novela/views.py
+- novela_visual/novela_visual/settings.py
+- novela_visual/novela_visual/urls.py
+- novela_visual/novela_visual/asgi.py
+- novela_visual/novela_visual/wsgi.py
+- novela_visual/novela_visual/__init__.py
+- novela_visual_frontend/src/pages/CreateStory.jsx
+- novela_visual_frontend/src/pages/EditStory.jsx
+- novela_visual_frontend/src/pages/ManageStories.jsx
+- novela_visual_frontend/src/pages/MyStories.jsx
+- novela_visual_frontend/src/pages/StoryPlayer.jsx
+- novela_visual/media/imagenes/2ec9de49-a1b9-4519-a26c-5344fc9f18fe.png
+- novela_visual/media/imagenes/342306ea-4a4b-4b83-a71c-507a519ec24e.png
+- novela_visual/media/imagenes/ffb77f31-3aad-4982-926e-48cb7c450a9d.png
+
+[Max]
+- novela_visual_frontend/index.html
+- novela_visual_frontend/package.json
+- novela_visual_frontend/src/App.jsx
+- novela_visual_frontend/src/index.css
+- novela_visual_frontend/src/main.jsx
+- novela_visual_frontend/src/pages/Catalog.jsx
+- novela_visual_frontend/src/pages/Login.jsx
+- novela_visual_frontend/src/pages/Register.jsx
+- novela_visual_frontend/src/pages/AdminDashboard.jsx
+- novela_visual_frontend/src/pages/ManageUsers.jsx
+- novela_visual/media/imagenes/152050b7-e9ce-42fb-ad94-6eb17d2bf6c1.png
+- novela_visual/media/imagenes/1b589f13-e28f-4de5-9c11-8b288c67c9b2.png
+- novela_visual/media/imagenes/22a7ca1a-4896-420e-aead-156c1dfcf750.png
+- novela_visual/media/imagenes/3a35382e-6704-44e0-9488-2f1cc54cf165.png
+- novela_visual/media/imagenes/471b1579-1bab-45c2-b5c2-fc6de9e34d96.png
+- novela_visual/media/imagenes/5d59b30a-d9a2-4e20-8c28-d618ef7351c3.png
+- novela_visual/media/imagenes/6222b8ca-1f82-4558-9358-4a1ce16c0c68.png
+- novela_visual/media/imagenes/661774a8-4deb-4d5a-858d-b20fcd6a64e3.png
+
+[Fredy]
+- novela_visual_frontend/vite.config.js
+- novela_visual_frontend/src/components/ProtectedRoute.jsx
+- novela_visual_frontend/src/pages/UserDashboard.jsx
+- novela_visual_frontend/src/services/adminService.js
+- novela_visual_frontend/src/services/authService.js
+- novela_visual/media/imagenes/77deb155-422a-40a4-b2a2-297d265299e1.png
+- novela_visual/media/imagenes/8239ab4d-3334-424b-9c1b-16e26d7d21f6.png
+- novela_visual/media/imagenes/992faf12-949e-4ee1-b1a1-6885cc415e9c.png
+- novela_visual/media/imagenes/b396e49d-65cd-47d7-8a72-06136c0369db.png
+- novela_visual/media/imagenes/bf8109f0-f31b-47cc-be65-11f5514ad3f0.png
+- novela_visual/media/imagenes/d2c540c6-eeef-4bef-8c97-35b6964be507.png
+- novela_visual/media/imagenes/f237ce53-bc2f-427b-877c-0f7cdd8973c0.png
+- novela_visual/media/imagenes/fc686ccc-15f9-4f83-adff-449c969b71d4.png
+- novela_visual/media/personajes/08462148-73de-46ec-90dd-84d0a8e22634.png
+- novela_visual/media/personajes/a5bb6bf1-dfe2-4287-8cbf-040126d0ffd9.png
+- novela_visual_frontend/src/services/api.js
+
+[Ali]
+- CREAR_HISTORIA_README.md
+- README.md
+- package-lock.json
+- novela_visual/novela/__init__.py
+- novela_visual/media/audio/.gitignore
+- novela_visual/media/escenarios/.gitignore
+- novela_visual/media/imagenes/.gitignore
+- novela_visual/media/personajes/.gitignore
+- novela_visual/media/imagenes/16da7431-399e-46ff-82fb-e9bbf164c4d9.png
+- novela_visual/media/imagenes/452d2546-286c-48e9-9e40-30d3427ae83b.png
+- novela_visual/media/imagenes/95e6aa0f-2b2a-46d1-8ed7-f6695b36c6f6.png
+- novela_visual/media/imagenes/c8a4d03b-ff8c-4bba-b462-084f847d8451.png
+- novela_visual/media/personajes/7595043b-1cbc-44ce-b664-244718527490.png
+- novela_visual_frontend/package-lock.json
+
+=====================================
+ORDEN SUGERIDO DE COMMITS (CRONOLOGICO)
+=====================================
+
+Formato sugerido de commit:
+- feat(scope): descripcion corta
+
+Secuencia global recomendada (24 commits)
+
+1) Ali
+- chore(docs): agregar lineamientos iniciales del proyecto
+- Archivos: README.md, CREAR_HISTORIA_README.md, novela_visual/novela/__init__.py
+
+2) Tom
+- chore(backend): bootstrap del proyecto Django
+- Archivos: novela_visual/manage.py, novela_visual/novela_visual/__init__.py, novela_visual/novela_visual/settings.py, novela_visual/novela_visual/asgi.py, novela_visual/novela_visual/wsgi.py, novela_visual/novela_visual/urls.py
+
+3) Chucho
+- feat(db): definir modelos y registro en admin
+- Archivos: novela_visual/novela/models.py, novela_visual/novela/admin.py, novela_visual/novela/apps.py
+
+4) Chucho
+- feat(db): crear migraciones iniciales
+- Archivos: novela_visual/novela/migrations/0001_initial.py, novela_visual/novela/migrations/0002_historia_portada.py, novela_visual/novela/migrations/__init__.py
+
+5) Tom
+- feat(api): habilitar rutas y vistas base de novela
+- Archivos: novela_visual/novela/urls.py, novela_visual/novela/views.py
+
+6) Max
+- feat(frontend): inicializar Vite y estructura principal
+- Archivos: novela_visual_frontend/package.json, novela_visual_frontend/index.html, novela_visual_frontend/src/main.jsx, novela_visual_frontend/src/App.jsx, novela_visual_frontend/src/index.css
+
+7) Fredy
+- chore(frontend): configurar build y proteccion de rutas
+- Archivos: novela_visual_frontend/vite.config.js, novela_visual_frontend/src/components/ProtectedRoute.jsx
+
+8) Max
+- feat(ui): crear vistas de acceso y catalogo
+- Archivos: novela_visual_frontend/src/pages/Login.jsx, novela_visual_frontend/src/pages/Register.jsx, novela_visual_frontend/src/pages/Catalog.jsx
+
+9) Fredy
+- feat(js): crear servicios de autenticacion y administracion
+- Archivos: novela_visual_frontend/src/services/authService.js, novela_visual_frontend/src/services/adminService.js, novela_visual_frontend/src/services/api.js
+
+10) Tom
+- feat(fullstack): integrar pantallas de flujo de historias
+- Archivos: novela_visual_frontend/src/pages/CreateStory.jsx, novela_visual_frontend/src/pages/EditStory.jsx, novela_visual_frontend/src/pages/ManageStories.jsx, novela_visual_frontend/src/pages/MyStories.jsx, novela_visual_frontend/src/pages/StoryPlayer.jsx
+
+11) Max
+- feat(ui-admin): agregar paneles administrativos y de gestion
+- Archivos: novela_visual_frontend/src/pages/AdminDashboard.jsx, novela_visual_frontend/src/pages/ManageUsers.jsx
+
+12) Fredy
+- feat(ui-user): implementar dashboard de usuario
+- Archivos: novela_visual_frontend/src/pages/UserDashboard.jsx
+
+13) Ali
+- chore(media): preparar estructura de media con gitignore
+- Archivos: novela_visual/media/audio/.gitignore, novela_visual/media/escenarios/.gitignore, novela_visual/media/imagenes/.gitignore, novela_visual/media/personajes/.gitignore
+
+14) Chucho
+- chore(data): cargar escenarios para pruebas de historias
+- Archivos: novela_visual/media/escenarios/3b8fb0f8-a5e8-4b14-abbe-36c484fa14e6.png, novela_visual/media/escenarios/58e04f94-dd5b-401e-aeac-0e32d8032c01.png, novela_visual/media/escenarios/64aba190-0466-4bce-a8a6-8202c764f975.png
+
+15) Chucho
+- chore(data): agregar escenarios adicionales y personaje base
+- Archivos: novela_visual/media/escenarios/a96d6ae5-e8a4-45a1-8617-5e7b1cffdcd7.png, novela_visual/media/escenarios/e2afcb86-0eb5-4086-9019-04e918fc4868.png, novela_visual/media/escenarios/f1da7584-145c-472e-b083-91f275aaa8aa.png, novela_visual/media/escenarios/4221dc08-8c8f-4e26-9baa-e5d04e14ca8b.png, novela_visual/media/personajes/a20dc904-2485-4f0f-9f96-c1300f0661bd.png
+
+16) Max
+- chore(assets-ui): subir pack visual principal I
+- Archivos: novela_visual/media/imagenes/152050b7-e9ce-42fb-ad94-6eb17d2bf6c1.png, novela_visual/media/imagenes/1b589f13-e28f-4de5-9c11-8b288c67c9b2.png, novela_visual/media/imagenes/22a7ca1a-4896-420e-aead-156c1dfcf750.png, novela_visual/media/imagenes/3a35382e-6704-44e0-9488-2f1cc54cf165.png
+
+17) Max
+- chore(assets-ui): subir pack visual principal II
+- Archivos: novela_visual/media/imagenes/471b1579-1bab-45c2-b5c2-fc6de9e34d96.png, novela_visual/media/imagenes/5d59b30a-d9a2-4e20-8c28-d618ef7351c3.png, novela_visual/media/imagenes/6222b8ca-1f82-4558-9358-4a1ce16c0c68.png, novela_visual/media/imagenes/661774a8-4deb-4d5a-858d-b20fcd6a64e3.png
+
+18) Tom
+- chore(assets-backend): agregar imagenes usadas por flujo de historias
+- Archivos: novela_visual/media/imagenes/2ec9de49-a1b9-4519-a26c-5344fc9f18fe.png, novela_visual/media/imagenes/342306ea-4a4b-4b83-a71c-507a519ec24e.png, novela_visual/media/imagenes/ffb77f31-3aad-4982-926e-48cb7c450a9d.png
+
+19) Fredy
+- chore(assets-js): subir recursos de interfaz I
+- Archivos: novela_visual/media/imagenes/77deb155-422a-40a4-b2a2-297d265299e1.png, novela_visual/media/imagenes/8239ab4d-3334-424b-9c1b-16e26d7d21f6.png, novela_visual/media/imagenes/992faf12-949e-4ee1-b1a1-6885cc415e9c.png, novela_visual/media/imagenes/b396e49d-65cd-47d7-8a72-06136c0369db.png
+
+20) Fredy
+- chore(assets-js): subir recursos de interfaz II
+- Archivos: novela_visual/media/imagenes/bf8109f0-f31b-47cc-be65-11f5514ad3f0.png, novela_visual/media/imagenes/d2c540c6-eeef-4bef-8c97-35b6964be507.png, novela_visual/media/imagenes/f237ce53-bc2f-427b-877c-0f7cdd8973c0.png, novela_visual/media/imagenes/fc686ccc-15f9-4f83-adff-449c969b71d4.png, novela_visual/media/personajes/08462148-73de-46ec-90dd-84d0a8e22634.png, novela_visual/media/personajes/a5bb6bf1-dfe2-4287-8cbf-040126d0ffd9.png
+
+21) Ali
+- chore(assets): subir recursos varios y personaje secundario
+- Archivos: novela_visual/media/imagenes/16da7431-399e-46ff-82fb-e9bbf164c4d9.png, novela_visual/media/imagenes/452d2546-286c-48e9-9e40-30d3427ae83b.png, novela_visual/media/imagenes/95e6aa0f-2b2a-46d1-8ed7-f6695b36c6f6.png, novela_visual/media/imagenes/c8a4d03b-ff8c-4bba-b462-084f847d8451.png, novela_visual/media/personajes/7595043b-1cbc-44ce-b664-244718527490.png
+
+22) Ali
+- chore(lockfiles): agregar lockfiles para reproducibilidad
+- Archivos: package-lock.json, novela_visual_frontend/package-lock.json
+
+23) Chucho
+- test(db): agregar pruebas basicas de modelos
+- Archivos: novela_visual/novela/tests.py
+
+24) Tom
+- chore(release): ajuste final de rutas y verificacion de arranque
+- Archivos: novela_visual/novela/urls.py, novela_visual/novela/views.py, novela_visual/manage.py
+
+==================================================
+SUGERENCIA PRACTICA PARA SIMULAR AUTORIAS EN GIT
+==================================================
+
+Antes de cada commit, cambia autor localmente:
+- git config user.name "Chucho"
+- git config user.email "chucho@equipo.local"
+
+Alternativa en una sola linea por commit:
+- git -c user.name="Chucho" -c user.email="chucho@equipo.local" commit -m "feat(db): ..."
+
+Tip para evitar errores
+- Haz commit solo de los archivos asignados en cada paso (git add <archivo1> <archivo2> ...).
+- Sigue la secuencia cronologica para que el historial se vea natural.

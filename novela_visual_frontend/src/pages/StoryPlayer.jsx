@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 
 const API_BASE = 'http://localhost:8000/api';
 
 export default function StoryPlayer() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [historia, setHistoria] = useState(null);
@@ -36,10 +35,6 @@ export default function StoryPlayer() {
       });
       
       if (!res.ok) {
-        if (res.status === 401) {
-          navigate('/login');
-          return;
-        }
         throw new Error('Error al cargar historia');
       }
       
@@ -94,6 +89,21 @@ export default function StoryPlayer() {
     }
   }
 
+  const personajesPorPosicion = (nodoActual?.personajes || []).reduce(
+    (acc, personaje) => {
+      const posicion = (personaje.posicion || 'centro').toLowerCase().trim();
+      if (posicion === 'izquierda') {
+        acc.izquierda.push(personaje);
+      } else if (posicion === 'derecha') {
+        acc.derecha.push(personaje);
+      } else {
+        acc.centro.push(personaje);
+      }
+      return acc;
+    },
+    { izquierda: [], centro: [], derecha: [] }
+  );
+
   if (loading) {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center bg-dark text-white">
@@ -109,7 +119,7 @@ export default function StoryPlayer() {
       <div className="min-vh-100 d-flex align-items-center justify-content-center bg-dark text-white">
         <div className="text-center">
           <h5>{error || 'No se pudo cargar la historia'}</h5>
-          <Link to="/mis-historias" className="btn btn-light mt-3">Volver</Link>
+          <Link to="/" className="btn btn-light mt-3">Volver al catálogo</Link>
         </div>
       </div>
     );
@@ -135,7 +145,7 @@ export default function StoryPlayer() {
       {/* Header */}
       <nav className="navbar navbar-dark position-relative" style={{ zIndex: 2, backgroundColor: 'rgba(0,0,0,0.7)' }}>
         <div className="container-fluid">
-          <Link to="/mis-historias" className="navbar-brand">← Salir</Link>
+          <Link to="/" className="navbar-brand">← Volver al catálogo</Link>
           <div className="d-flex gap-2">
             <button 
               className="btn btn-sm btn-outline-light"
@@ -160,56 +170,59 @@ export default function StoryPlayer() {
           {/* Personajes en escena */}
           {nodoActual.personajes && nodoActual.personajes.length > 0 && (
             <div 
-              className="d-flex justify-content-around align-items-end mb-4"
+              className="d-flex align-items-end mb-4"
               style={{ height: 300 }}
             >
-              {/* Personaje Izquierda */}
-              {nodoActual.personajes.filter(p => p.posicion === 'izquierda').map(personaje => (
-                <div key={personaje.id} className="text-center" style={{ flex: 1 }}>
+              <div className="text-center" style={{ flex: 1 }}>
+                {personajesPorPosicion.izquierda.map((personaje) => (
                   <img
+                    key={personaje.id}
                     src={personaje.imagen_url}
                     alt={personaje.nombre}
-                    style={{ 
-                      maxHeight: 280, 
-                      maxWidth: '100%',
+                    className="mx-1"
+                    style={{
+                      maxHeight: 280,
+                      maxWidth: '45%',
                       objectFit: 'contain',
                       filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))'
                     }}
                   />
-                </div>
-              ))}
-              
-              {/* Personaje Centro */}
-              {nodoActual.personajes.filter(p => p.posicion === 'centro').map(personaje => (
-                <div key={personaje.id} className="text-center" style={{ flex: 1 }}>
+                ))}
+              </div>
+
+              <div className="text-center" style={{ flex: 1 }}>
+                {personajesPorPosicion.centro.map((personaje) => (
                   <img
+                    key={personaje.id}
                     src={personaje.imagen_url}
                     alt={personaje.nombre}
-                    style={{ 
-                      maxHeight: 280, 
-                      maxWidth: '100%',
+                    className="mx-1"
+                    style={{
+                      maxHeight: 280,
+                      maxWidth: '45%',
                       objectFit: 'contain',
                       filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))'
                     }}
                   />
-                </div>
-              ))}
-              
-              {/* Personaje Derecha */}
-              {nodoActual.personajes.filter(p => p.posicion === 'derecha').map(personaje => (
-                <div key={personaje.id} className="text-center" style={{ flex: 1 }}>
+                ))}
+              </div>
+
+              <div className="text-center" style={{ flex: 1 }}>
+                {personajesPorPosicion.derecha.map((personaje) => (
                   <img
+                    key={personaje.id}
                     src={personaje.imagen_url}
                     alt={personaje.nombre}
-                    style={{ 
-                      maxHeight: 280, 
-                      maxWidth: '100%',
+                    className="mx-1"
+                    style={{
+                      maxHeight: 280,
+                      maxWidth: '45%',
                       objectFit: 'contain',
                       filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))'
                     }}
                   />
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
           

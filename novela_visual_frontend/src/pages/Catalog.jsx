@@ -63,25 +63,43 @@ export default function Catalog({ usuario, onLogout }) {
             {historias.map((h) => (
               <div key={h.id} className="col">
                 <div className="card border-0 shadow-sm h-100 catalog-card">
-                  {/* Portada placeholder */}
-                  <div
-                    className="card-img-top d-flex align-items-center justify-content-center"
-                    style={{
-                      height: 200,
-                      background: `linear-gradient(135deg, #0A2463, #3E92CC)`,
-                      borderRadius: '10px 10px 0 0',
-                    }}
-                  >
-                    <span className="display-4" style={{ color: '#FFFAFF', opacity: 0.8 }}>📖</span>
-                  </div>
+                  {h.portada_url ? (
+                    <img
+                      src={h.portada_url}
+                      alt={`Portada de ${h.titulo}`}
+                      className="card-img-top"
+                      style={{
+                        height: 200,
+                        objectFit: 'cover',
+                        borderRadius: '10px 10px 0 0',
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className="card-img-top d-flex align-items-center justify-content-center"
+                      style={{
+                        height: 200,
+                        background: `linear-gradient(135deg, #0A2463, #3E92CC)`,
+                        borderRadius: '10px 10px 0 0',
+                      }}
+                    >
+                      <span className="display-4" style={{ color: '#FFFAFF', opacity: 0.8 }}>📖</span>
+                    </div>
+                  )}
                   <div className="card-body d-flex flex-column">
                     <h5 className="card-title fw-bold mb-1" style={{ fontSize: '1rem' }}>{h.titulo}</h5>
                     <p className="card-text text-muted small flex-grow-1">
                       {h.descripcion ? (h.descripcion.length > 100 ? h.descripcion.slice(0, 100) + '…' : h.descripcion) : 'Sin descripción'}
                     </p>
-                    <div className="d-flex justify-content-between align-items-center mt-2">
+                    <div className="d-flex justify-content-between align-items-center mt-2 mb-3">
                       <span className="text-muted" style={{ fontSize: '0.75rem' }}>por {h.creador}</span>
                     </div>
+                    <Link
+                      to={`/historias/${h.id}/jugar`}
+                      className="btn btn-primary btn-sm w-100"
+                    >
+                      Ver historia
+                    </Link>
                   </div>
                 </div>
               </div>

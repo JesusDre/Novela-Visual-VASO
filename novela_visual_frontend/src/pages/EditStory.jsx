@@ -10,6 +10,21 @@ export default function EditStory() {
   const [error, setError] = useState('');
   const [historia, setHistoria] = useState(null);
   const [vista, setVista] = useState('info'); // info, nodos, personajes
+  const [portadaFile, setPortadaFile] = useState(null);
+  const [portadaPreview, setPortadaPreview] = useState(null);
+  const [asignacionPorNodo, setAsignacionPorNodo] = useState({});
+  const [nodoEditandoId, setNodoEditandoId] = useState(null);
+  const [edicionNodo, setEdicionNodo] = useState({
+    titulo_nodo: '',
+    texto: '',
+    es_final: false,
+    imagenFile: null,
+    imagenPreview: null,
+    audioFile: null,
+    audioPreview: null,
+  });
+  const [nuevaOpcionEdicion, setNuevaOpcionEdicion] = useState({ texto: '', nodo_destino_id: '' });
+  const [opcionesEditando, setOpcionesEditando] = useState({});
   
   // Formulario para nuevo nodo
   const [nuevoNodo, setNuevoNodo] = useState({
@@ -39,6 +54,58 @@ export default function EditStory() {
   useEffect(() => {
     cargarHistoria();
   }, [id]);
+
+  useEffect(() => {
+    if (!nodoEditandoId || !historia?.nodos) {
+      return;
+    }
+
+    const nodoActual = historia.nodos.find((n) => n.id === nodoEditandoId);
+    if (!nodoActual) {
+      return;
+    }
+
+    const opcionesIniciales = {};
+    (nodoActual.opciones || []).forEach((op) => {
+      opcionesIniciales[op.id] = {
+        texto: op.texto || '',
+        nodo_destino_id: String(op.nodo_destino_id || ''),
+      };
+    });
+    setOpcionesEditando(opcionesIniciales);
+  }, [historia, nodoEditandoId]);
+
+  useEffect(() => {
+    if (!historia?.nodos?.length) {
+      return;
+    }
+
+    setAsignacionPorNodo((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      historia.nodos.forEach((nodo) => {
+        const seleccionActual = next[nodo.id]?.personajeId || '';
+        if (!seleccionActual) {
+          return;
+        }
+
+        const yaAsignado = (nodo.personajes || []).some(
+          (p) => String(p.id) === String(seleccionActual)
+        );
+
+        if (yaAsignado) {
+          next[nodo.id] = {
+            personajeId: '',
+            posicion: next[nodo.id]?.posicion || 'centro',
+          };
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [historia]);
 
   async function cargarHistoria() {
     try {
@@ -211,6 +278,96 @@ export default function EditStory() {
     }
   }
 
+  function readAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function subirImagen(file, tipo, descripcion) {
+    const imagenBase64 = await readAsDataURL(file);
+    const res = await fetch(`${API_BASE}/imagenes/subir/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        imagen: imagenBase64,
+        tipo,
+        descripcion,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Error al subir imagen');
+    }
+
+    const data = await res.json();
+    return data.imagen.id;
+  }
+
+  async function handleGuardarInfoBasica(e) {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const payload = {
+        titulo: historia.titulo,
+        descripcion: historia.descripcion || '',
+      };
+
+      if (portadaFile) {
+        const portadaId = await subirImagen(portadaFile, 'portada', historia.titulo || 'Portada de historia');
+        payload.portada_id = portadaId;
+      }
+
+      const res = await fetch(`${API_BASE}/historias/${id}/actualizar/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Error al guardar información básica');
+      }
+
+      await cargarHistoria();
+      setPortadaFile(null);
+      setPortadaPreview(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function subirAudio(file, descripcion) {
+    const audioBase64 = await readAsDataURL(file);
+    const res = await fetch(`${API_BASE}/audio/subir/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        audio: audioBase64,
+        descripcion,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Error al subir audio');
+    }
+
+    const data = await res.json();
+    return data.audio.id;
+  }
+
   function handleImagenNodo(e) {
     const file = e.target.files[0];
     if (file) {
@@ -313,6 +470,13 @@ export default function EditStory() {
       }
       
       await cargarHistoria();
+      setAsignacionPorNodo((prev) => ({
+        ...prev,
+        [nodoId]: {
+          personajeId: '',
+          posicion: prev[nodoId]?.posicion || 'centro',
+        },
+      }));
     } catch (err) {
       setError(err.message);
     }
@@ -345,6 +509,269 @@ export default function EditStory() {
         imagenPreview: URL.createObjectURL(file)
       });
     }
+  }
+
+  function handlePortadaHistoria(e) {
+    const file = e.target.files[0];
+    if (file) {
+      setPortadaFile(file);
+      setPortadaPreview(URL.createObjectURL(file));
+    }
+  }
+
+  function actualizarAsignacionNodo(nodoId, cambios) {
+    setAsignacionPorNodo((prev) => ({
+      ...prev,
+      [nodoId]: {
+        personajeId: prev[nodoId]?.personajeId || '',
+        posicion: prev[nodoId]?.posicion || 'centro',
+        ...cambios,
+      },
+    }));
+  }
+
+  function iniciarEdicionNodo(nodo) {
+    setError('');
+    setNodoEditandoId(nodo.id);
+    setEdicionNodo({
+      titulo_nodo: nodo.titulo || '',
+      texto: nodo.texto || '',
+      es_final: !!nodo.es_final,
+      imagenFile: null,
+      imagenPreview: null,
+      audioFile: null,
+      audioPreview: null,
+    });
+    setNuevaOpcionEdicion({ texto: '', nodo_destino_id: '' });
+
+    const opcionesIniciales = {};
+    (nodo.opciones || []).forEach((op) => {
+      opcionesIniciales[op.id] = {
+        texto: op.texto || '',
+        nodo_destino_id: String(op.nodo_destino_id || ''),
+      };
+    });
+    setOpcionesEditando(opcionesIniciales);
+  }
+
+  function cancelarEdicionNodo() {
+    setNodoEditandoId(null);
+    setEdicionNodo({
+      titulo_nodo: '',
+      texto: '',
+      es_final: false,
+      imagenFile: null,
+      imagenPreview: null,
+      audioFile: null,
+      audioPreview: null,
+    });
+    setNuevaOpcionEdicion({ texto: '', nodo_destino_id: '' });
+    setOpcionesEditando({});
+  }
+
+  function handleImagenEdicionNodo(e) {
+    const file = e.target.files[0];
+    if (file) {
+      setEdicionNodo((prev) => ({
+        ...prev,
+        imagenFile: file,
+        imagenPreview: URL.createObjectURL(file),
+      }));
+    }
+  }
+
+  function handleAudioEdicionNodo(e) {
+    const file = e.target.files[0];
+    if (file) {
+      setEdicionNodo((prev) => ({
+        ...prev,
+        audioFile: file,
+        audioPreview: URL.createObjectURL(file),
+      }));
+    }
+  }
+
+  async function handleGuardarEdicionNodo(nodoId) {
+    setLoading(true);
+    setError('');
+
+    try {
+      const payload = {
+        titulo_nodo: edicionNodo.titulo_nodo,
+        texto: edicionNodo.texto,
+        es_final: edicionNodo.es_final,
+      };
+
+      if (edicionNodo.imagenFile) {
+        const imagenId = await subirImagen(edicionNodo.imagenFile, 'escenario', edicionNodo.titulo_nodo || 'Escena');
+        payload.imagen_escenario_id = imagenId;
+      }
+
+      if (edicionNodo.audioFile) {
+        const audioId = await subirAudio(edicionNodo.audioFile, `Audio de fondo - ${edicionNodo.titulo_nodo || 'Escena'}`);
+        payload.audio_fondo_id = audioId;
+      }
+
+      const res = await fetch(`${API_BASE}/nodos/${nodoId}/actualizar/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Error al actualizar escena');
+      }
+
+      await cargarHistoria();
+      cancelarEdicionNodo();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleEliminarNodo(nodoId) {
+    if (!confirm('¿Seguro que deseas eliminar esta escena? Se eliminarán también sus conexiones.')) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_BASE}/nodos/${nodoId}/eliminar/`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Error al eliminar escena');
+      }
+
+      if (nodoEditandoId === nodoId) {
+        cancelarEdicionNodo();
+      }
+      await cargarHistoria();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleEliminarOpcion(opcionId) {
+    if (!confirm('¿Seguro que deseas eliminar esta opción?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_BASE}/opciones/${opcionId}/eliminar/`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Error al eliminar opción');
+      }
+
+      await cargarHistoria();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCrearOpcionDesdeNodo(nodoId) {
+    setLoading(true);
+    setError('');
+
+    try {
+      const texto = (nuevaOpcionEdicion.texto || '').trim();
+      const nodoDestinoId = nuevaOpcionEdicion.nodo_destino_id;
+      if (!texto || !nodoDestinoId) {
+        throw new Error('Debes completar texto y escena destino para crear la opción');
+      }
+
+      const res = await fetch(`${API_BASE}/opciones/crear/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          texto_opcion: texto,
+          nodo_origen_id: nodoId,
+          nodo_destino_id: parseInt(nodoDestinoId, 10),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Error al crear opción');
+      }
+
+      await cargarHistoria();
+      setNuevaOpcionEdicion({ texto: '', nodo_destino_id: '' });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGuardarOpcion(opcionId) {
+    setLoading(true);
+    setError('');
+
+    try {
+      const opcion = opcionesEditando[opcionId];
+      if (!opcion) {
+        throw new Error('No se encontró la opción a editar');
+      }
+
+      const texto = (opcion.texto || '').trim();
+      const nodoDestinoId = opcion.nodo_destino_id;
+      if (!texto || !nodoDestinoId) {
+        throw new Error('Debes completar texto y destino de la opción');
+      }
+
+      const res = await fetch(`${API_BASE}/opciones/${opcionId}/actualizar/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          texto_opcion: texto,
+          nodo_destino_id: parseInt(nodoDestinoId, 10),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Error al actualizar opción');
+      }
+
+      await cargarHistoria();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function actualizarOpcionEditando(opcionId, cambios) {
+    setOpcionesEditando((prev) => ({
+      ...prev,
+      [opcionId]: {
+        texto: prev[opcionId]?.texto || '',
+        nodo_destino_id: prev[opcionId]?.nodo_destino_id || '',
+        ...cambios,
+      },
+    }));
   }
 
   if (loading && !historia) {
@@ -438,6 +865,57 @@ export default function EditStory() {
             {/* Vista: Información */}
             {vista === 'info' && (
               <div>
+                <div className="card bg-light border-0 mb-4">
+                  <div className="card-body">
+                    <h6 className="card-title">Información básica</h6>
+                    <form onSubmit={handleGuardarInfoBasica}>
+                      <div className="row g-3">
+                        <div className="col-md-6">
+                          <label className="form-label small">Título</label>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            value={historia.titulo || ''}
+                            onChange={(e) => setHistoria({ ...historia, titulo: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label small">Portada</label>
+                          <input
+                            type="file"
+                            className="form-control form-control-sm"
+                            accept="image/*"
+                            onChange={handlePortadaHistoria}
+                          />
+                        </div>
+                        <div className="col-12">
+                          <label className="form-label small">Descripción</label>
+                          <textarea
+                            className="form-control form-control-sm"
+                            rows="3"
+                            value={historia.descripcion || ''}
+                            onChange={(e) => setHistoria({ ...historia, descripcion: e.target.value })}
+                          />
+                        </div>
+                        {(portadaPreview || historia.portada_url) && (
+                          <div className="col-12">
+                            <img
+                              src={portadaPreview || historia.portada_url}
+                              alt="Portada"
+                              className="rounded"
+                              style={{ width: 220, height: 140, objectFit: 'cover' }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <button type="submit" className="btn btn-primary btn-sm mt-3" disabled={loading}>
+                        Guardar cambios
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
                 <div className="row g-3">
                   <div className="col-md-6">
                     <div className="bg-light rounded p-3">
@@ -622,11 +1100,197 @@ export default function EditStory() {
                         <div className="card-body p-3">
                           <div className="d-flex justify-content-between align-items-start mb-2">
                             <h6 className="mb-0">{nodo.titulo || 'Sin título'}</h6>
-                            {nodo.es_final && <span className="badge bg-danger">Final</span>}
+                            <div className="d-flex align-items-center gap-2">
+                              {nodo.es_final && <span className="badge bg-danger">Final</span>}
+                              <button
+                                type="button"
+                                className="btn btn-outline-secondary btn-sm"
+                                onClick={() => iniciarEdicionNodo(nodo)}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline-danger btn-sm"
+                                onClick={() => handleEliminarNodo(nodo.id)}
+                              >
+                                Eliminar
+                              </button>
+                            </div>
                           </div>
-                          <p className="small text-muted mb-2">
-                            {nodo.texto?.substring(0, 100)}...
-                          </p>
+
+                          {nodoEditandoId === nodo.id ? (
+                            <div className="border rounded p-3 mb-3 bg-light">
+                              <div className="row g-2">
+                                <div className="col-md-6">
+                                  <label className="form-label small">Título</label>
+                                  <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    value={edicionNodo.titulo_nodo}
+                                    onChange={(e) => setEdicionNodo({ ...edicionNodo, titulo_nodo: e.target.value })}
+                                  />
+                                </div>
+                                <div className="col-md-6">
+                                  <label className="form-label small">Reemplazar fondo (opcional)</label>
+                                  <input
+                                    type="file"
+                                    className="form-control form-control-sm"
+                                    accept="image/*"
+                                    onChange={handleImagenEdicionNodo}
+                                  />
+                                </div>
+                                <div className="col-12">
+                                  <label className="form-label small">Texto</label>
+                                  <textarea
+                                    className="form-control form-control-sm"
+                                    rows="3"
+                                    value={edicionNodo.texto}
+                                    onChange={(e) => setEdicionNodo({ ...edicionNodo, texto: e.target.value })}
+                                  />
+                                </div>
+                                <div className="col-md-6">
+                                  <label className="form-label small">Reemplazar audio (opcional)</label>
+                                  <input
+                                    type="file"
+                                    className="form-control form-control-sm"
+                                    accept="audio/*"
+                                    onChange={handleAudioEdicionNodo}
+                                  />
+                                </div>
+                                <div className="col-md-6 d-flex align-items-end">
+                                  <div className="form-check mb-2">
+                                    <input
+                                      type="checkbox"
+                                      className="form-check-input"
+                                      id={`editar-es-final-${nodo.id}`}
+                                      checked={edicionNodo.es_final}
+                                      onChange={(e) => setEdicionNodo({ ...edicionNodo, es_final: e.target.checked })}
+                                    />
+                                    <label className="form-check-label small" htmlFor={`editar-es-final-${nodo.id}`}>
+                                      Escena final
+                                    </label>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="d-flex gap-2 mt-3">
+                                <button
+                                  type="button"
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() => handleGuardarEdicionNodo(nodo.id)}
+                                  disabled={loading}
+                                >
+                                  Guardar escena
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-secondary btn-sm"
+                                  onClick={cancelarEdicionNodo}
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+
+                              <div className="border-top mt-3 pt-3">
+                                <h6 className="small mb-2">Opciones de esta escena</h6>
+
+                                <div className="border rounded p-2 mb-3 bg-white">
+                                  <div className="row g-2">
+                                    <div className="col-md-6">
+                                      <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        placeholder="Texto de nueva opción"
+                                        value={nuevaOpcionEdicion.texto}
+                                        onChange={(e) => setNuevaOpcionEdicion({ ...nuevaOpcionEdicion, texto: e.target.value })}
+                                      />
+                                    </div>
+                                    <div className="col-md-4">
+                                      <select
+                                        className="form-select form-select-sm"
+                                        value={nuevaOpcionEdicion.nodo_destino_id}
+                                        onChange={(e) => setNuevaOpcionEdicion({ ...nuevaOpcionEdicion, nodo_destino_id: e.target.value })}
+                                      >
+                                        <option value="">Escena destino...</option>
+                                        {historia.nodos?.map((destino) => (
+                                          <option key={destino.id} value={destino.id}>
+                                            {destino.titulo || `Escena ${destino.id}`}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    <div className="col-md-2">
+                                      <button
+                                        type="button"
+                                        className="btn btn-success btn-sm w-100"
+                                        onClick={() => handleCrearOpcionDesdeNodo(nodo.id)}
+                                        disabled={loading}
+                                      >
+                                        Agregar
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {nodo.opciones?.length > 0 ? (
+                                  <div className="d-flex flex-column gap-2">
+                                    {nodo.opciones.map((op) => (
+                                      <div key={op.id} className="border rounded p-2 bg-white">
+                                        <div className="row g-2">
+                                          <div className="col-md-5">
+                                            <input
+                                              type="text"
+                                              className="form-control form-control-sm"
+                                              value={opcionesEditando[op.id]?.texto || ''}
+                                              onChange={(e) => actualizarOpcionEditando(op.id, { texto: e.target.value })}
+                                            />
+                                          </div>
+                                          <div className="col-md-4">
+                                            <select
+                                              className="form-select form-select-sm"
+                                              value={opcionesEditando[op.id]?.nodo_destino_id || ''}
+                                              onChange={(e) => actualizarOpcionEditando(op.id, { nodo_destino_id: e.target.value })}
+                                            >
+                                              <option value="">Escena destino...</option>
+                                              {historia.nodos?.map((destino) => (
+                                                <option key={destino.id} value={destino.id}>
+                                                  {destino.titulo || `Escena ${destino.id}`}
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </div>
+                                          <div className="col-md-3 d-flex gap-2">
+                                            <button
+                                              type="button"
+                                              className="btn btn-primary btn-sm w-100"
+                                              onClick={() => handleGuardarOpcion(op.id)}
+                                              disabled={loading}
+                                            >
+                                              Guardar
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="btn btn-outline-danger btn-sm w-100"
+                                              onClick={() => handleEliminarOpcion(op.id)}
+                                              disabled={loading}
+                                            >
+                                              Quitar
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <small className="text-muted">Esta escena aún no tiene opciones.</small>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="small text-muted mb-2">
+                              {nodo.texto?.substring(0, 100) || ''}...
+                            </p>
+                          )}
                           
                           {/* Personajes en esta escena */}
                           {nodo.personajes && nodo.personajes.length > 0 && (
@@ -656,8 +1320,8 @@ export default function EditStory() {
                               <div className="col-md-5">
                                 <select
                                   className="form-select form-select-sm"
-                                  id={`personaje-select-${nodo.id}`}
-                                  defaultValue=""
+                                  value={asignacionPorNodo[nodo.id]?.personajeId || ''}
+                                  onChange={(e) => actualizarAsignacionNodo(nodo.id, { personajeId: e.target.value })}
                                 >
                                   <option value="" disabled>Seleccionar personaje...</option>
                                   {historia.personajes?.filter(p => 
@@ -672,8 +1336,8 @@ export default function EditStory() {
                               <div className="col-md-3">
                                 <select
                                   className="form-select form-select-sm"
-                                  id={`posicion-select-${nodo.id}`}
-                                  defaultValue="centro"
+                                  value={asignacionPorNodo[nodo.id]?.posicion || 'centro'}
+                                  onChange={(e) => actualizarAsignacionNodo(nodo.id, { posicion: e.target.value })}
                                 >
                                   <option value="izquierda">Izquierda</option>
                                   <option value="centro">Centro</option>
@@ -681,19 +1345,25 @@ export default function EditStory() {
                                 </select>
                               </div>
                               <div className="col-md-4">
+                                {(() => {
+                                  const personajeId = asignacionPorNodo[nodo.id]?.personajeId;
+                                  const posicion = asignacionPorNodo[nodo.id]?.posicion || 'centro';
+                                  const tieneSeleccion = Boolean(personajeId);
+                                  return (
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-primary w-100"
+                                  disabled={!tieneSeleccion}
                                   onClick={() => {
-                                    const personajeId = document.getElementById(`personaje-select-${nodo.id}`).value;
-                                    const posicion = document.getElementById(`posicion-select-${nodo.id}`).value;
                                     if (personajeId) {
-                                      handleAsignarPersonajeNodo(nodo.id, parseInt(personajeId), posicion);
+                                      handleAsignarPersonajeNodo(nodo.id, parseInt(personajeId, 10), posicion);
                                     }
                                   }}
                                 >
                                   + Agregar
                                 </button>
+                                  );
+                                })()}
                               </div>
                             </div>
                           </div>
@@ -702,7 +1372,16 @@ export default function EditStory() {
                             <div className="small mt-2 pt-2 border-top">
                               <strong>Opciones:</strong>
                               {nodo.opciones.map((op) => (
-                                <div key={op.id} className="text-primary">• {op.texto}</div>
+                                <div key={op.id} className="d-flex justify-content-between align-items-center gap-2">
+                                  <span className="text-primary">• {op.texto}</span>
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-danger btn-sm"
+                                    onClick={() => handleEliminarOpcion(op.id)}
+                                  >
+                                    Quitar
+                                  </button>
+                                </div>
                               ))}
                             </div>
                           )}

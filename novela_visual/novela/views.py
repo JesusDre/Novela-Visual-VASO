@@ -12,6 +12,12 @@ import base64
 import uuid
 
 
+def _ensure_absolute_url(url):
+    if url and not url.startswith('http'):
+        return f"http://localhost:8000{url}"
+    return url
+
+
 def _require_admin(request):
     """Verifica que el usuario en sesión sea Administrador. Retorna None si ok, o JsonResponse de error."""
     if 'usuario_id' not in request.session:
@@ -135,7 +141,7 @@ def registro_view(request):
 @require_http_methods(["GET"])
 def historias_publicadas_view(request):
     """Historias publicadas — acceso público, no requiere login."""
-    historias = Historia.objects.filter(publicada=True).select_related('creador')
+    historias = Historia.objects.filter(publicada=True).select_related('creador', 'portada')
     data = [
         {
             'id': h.id_historia,
@@ -143,6 +149,7 @@ def historias_publicadas_view(request):
             'descripcion': h.descripcion or '',
             'fecha_creacion': h.fecha_creacion.isoformat() if h.fecha_creacion else None,
             'creador': h.creador.nombre,
+            'portada_url': _ensure_absolute_url(h.portada.url) if h.portada else None,
         }
         for h in historias
     ]
@@ -198,7 +205,7 @@ def historias_list_view(request):
     err = _require_admin(request)
     if err:
         return err
-    historias = Historia.objects.select_related('creador').all()
+    historias = Historia.objects.select_related('creador', 'portada').all()
     data = [
         {
             'id': h.id_historia,
@@ -207,6 +214,7 @@ def historias_list_view(request):
             'publicada': h.publicada,
             'fecha_creacion': h.fecha_creacion.isoformat() if h.fecha_creacion else None,
             'creador': h.creador.nombre,
+            'portada_url': _ensure_absolute_url(h.portada.url) if h.portada else None,
         }
         for h in historias
     ]
@@ -250,7 +258,7 @@ def mis_historias_view(request):
         return err
     
     usuario_id = request.session.get('usuario_id')
-    historias = Historia.objects.filter(creador_id=usuario_id).select_related('creador').prefetch_related('nodos')
+    historias = Historia.objects.filter(creador_id=usuario_id).select_related('creador', 'portada').prefetch_related('nodos')
     
     data = []
     for h in historias:
@@ -263,6 +271,7 @@ def mis_historias_view(request):
             'publicada': h.publicada,
             'nodos_count': nodos_count,
             'tiene_nodo_inicio': h.nodo_inicio_id is not None,
+            'portada_url': _ensure_absolute_url(h.portada.url) if h.portada else None,
         })
     return JsonResponse({'historias': data})
 
@@ -282,19 +291,28 @@ def crear_historia_view(request):
     
     titulo = data.get('titulo', '').strip()
     descripcion = data.get('descripcion', '').strip()
+    portada_id = data.get('portada_id')
     
     if not titulo:
         return JsonResponse({'error': 'El título es requerido'}, status=400)
     
     usuario_id = request.session.get('usuario_id')
     usuario = Usuario.objects.get(id_usuario=usuario_id)
+
+    portada = None
+    if portada_id:
+        try:
+            portada = Imagen.objects.get(id_imagen=portada_id)
+        except Imagen.DoesNotExist:
+            return JsonResponse({'error': 'La portada seleccionada no existe'}, status=400)
     
     historia = Historia.objects.create(
         titulo=titulo,
         descripcion=descripcion,
         fecha_creacion=timezone.now(),
         publicada=False,
-        creador=usuario
+        creador=usuario,
+        portada=portada,
     )
     
     return JsonResponse({
@@ -303,6 +321,7 @@ def crear_historia_view(request):
             'id': historia.id_historia,
             'titulo': historia.titulo,
             'descripcion': historia.descripcion,
+            'portada_url': _ensure_absolute_url(historia.portada.url) if historia.portada else None,
         }
     }, status=201)
 
@@ -585,6 +604,183 @@ def crear_opcion_view(request):
 
 
 @csrf_exempt
+@require_http_methods(["PATCH"])
+def actualizar_opcion_view(request, opcion_id):
+    """Actualiza una opción existente del usuario autenticado."""
+    err = _require_auth(request)
+    if err:
+        return err
+
+    usuario_id = request.session.get('usuario_id')
+    try:
+        opcion = Opcion.objects.select_related('nodo_origen__historia', 'nodo_destino').get(
+            id_opcion=opcion_id,
+            nodo_origen__historia__creador_id=usuario_id
+        )
+    except Opcion.DoesNotExist:
+        return JsonResponse({'error': 'Opción no encontrada'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    updated_fields = []
+
+    if 'texto_opcion' in data:
+        texto_opcion = (data.get('texto_opcion') or '').strip()
+        if not texto_opcion:
+            return JsonResponse({'error': 'El texto de la opción es requerido'}, status=400)
+        opcion.texto_opcion = texto_opcion
+        updated_fields.append('texto_opcion')
+
+    if 'nodo_destino_id' in data:
+        nodo_destino_id = data.get('nodo_destino_id')
+        if not nodo_destino_id:
+            return JsonResponse({'error': 'nodo_destino_id es requerido'}, status=400)
+
+        try:
+            nodo_destino = Nodo.objects.select_related('historia').get(
+                id_nodo=nodo_destino_id,
+                historia__creador_id=usuario_id
+            )
+        except Nodo.DoesNotExist:
+            return JsonResponse({'error': 'Nodo destino no encontrado'}, status=404)
+
+        if nodo_destino.historia_id != opcion.nodo_origen.historia_id:
+            return JsonResponse({'error': 'El nodo destino debe pertenecer a la misma historia'}, status=400)
+
+        opcion.nodo_destino = nodo_destino
+        updated_fields.append('nodo_destino')
+
+    if not updated_fields:
+        return JsonResponse({'error': 'No hay campos para actualizar'}, status=400)
+
+    opcion.save(update_fields=updated_fields)
+
+    return JsonResponse({
+        'mensaje': 'Opción actualizada exitosamente',
+        'opcion': {
+            'id': opcion.id_opcion,
+            'texto_opcion': opcion.texto_opcion,
+            'nodo_origen_id': opcion.nodo_origen_id,
+            'nodo_destino_id': opcion.nodo_destino_id,
+        }
+    })
+
+
+@csrf_exempt
+@require_http_methods(["PATCH"])
+def actualizar_nodo_view(request, nodo_id):
+    """Actualiza una escena existente del usuario autenticado."""
+    err = _require_auth(request)
+    if err:
+        return err
+
+    usuario_id = request.session.get('usuario_id')
+    try:
+        nodo = Nodo.objects.select_related('historia').get(id_nodo=nodo_id, historia__creador_id=usuario_id)
+    except Nodo.DoesNotExist:
+        return JsonResponse({'error': 'Escena no encontrada'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    updated_fields = []
+
+    if 'titulo_nodo' in data:
+        nodo.titulo_nodo = (data.get('titulo_nodo') or '').strip()
+        updated_fields.append('titulo_nodo')
+
+    if 'texto' in data:
+        nodo.texto = (data.get('texto') or '').strip()
+        updated_fields.append('texto')
+
+    if 'es_final' in data:
+        nodo.es_final = bool(data.get('es_final'))
+        updated_fields.append('es_final')
+
+    if 'imagen_escenario_id' in data:
+        imagen_escenario_id = data.get('imagen_escenario_id')
+        nodo.imagen_escenario_id = imagen_escenario_id if imagen_escenario_id not in (None, '') else None
+        updated_fields.append('imagen_escenario')
+
+    if 'audio_fondo_id' in data:
+        audio_fondo_id = data.get('audio_fondo_id')
+        nodo.audio_fondo_id = audio_fondo_id if audio_fondo_id not in (None, '') else None
+        updated_fields.append('audio_fondo')
+
+    if not updated_fields:
+        return JsonResponse({'error': 'No hay campos para actualizar'}, status=400)
+
+    nodo.save(update_fields=updated_fields)
+
+    return JsonResponse({
+        'mensaje': 'Escena actualizada exitosamente',
+        'nodo': {
+            'id': nodo.id_nodo,
+            'titulo_nodo': nodo.titulo_nodo,
+            'texto': nodo.texto,
+            'es_final': nodo.es_final,
+            'imagen_escenario_id': nodo.imagen_escenario_id,
+            'audio_fondo_id': nodo.audio_fondo_id,
+        }
+    })
+
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def eliminar_nodo_view(request, nodo_id):
+    """Elimina una escena del usuario autenticado."""
+    err = _require_auth(request)
+    if err:
+        return err
+
+    usuario_id = request.session.get('usuario_id')
+    try:
+        nodo = Nodo.objects.select_related('historia').get(id_nodo=nodo_id, historia__creador_id=usuario_id)
+    except Nodo.DoesNotExist:
+        return JsonResponse({'error': 'Escena no encontrada'}, status=404)
+
+    historia = nodo.historia
+    if historia.nodos.count() <= 1:
+        return JsonResponse({'error': 'La historia debe tener al menos una escena'}, status=400)
+
+    nodo.delete()
+
+    if historia.nodo_inicio_id is None:
+        nuevo_inicio = historia.nodos.order_by('id_nodo').first()
+        if nuevo_inicio:
+            historia.nodo_inicio = nuevo_inicio
+            historia.save(update_fields=['nodo_inicio'])
+
+    return JsonResponse({'mensaje': 'Escena eliminada exitosamente'})
+
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def eliminar_opcion_view(request, opcion_id):
+    """Elimina una opción del usuario autenticado."""
+    err = _require_auth(request)
+    if err:
+        return err
+
+    usuario_id = request.session.get('usuario_id')
+    try:
+        opcion = Opcion.objects.select_related('nodo_origen__historia').get(
+            id_opcion=opcion_id,
+            nodo_origen__historia__creador_id=usuario_id
+        )
+    except Opcion.DoesNotExist:
+        return JsonResponse({'error': 'Opción no encontrada'}, status=404)
+
+    opcion.delete()
+    return JsonResponse({'mensaje': 'Opción eliminada exitosamente'})
+
+
+@csrf_exempt
 @require_http_methods(["POST"])
 def asignar_personaje_nodo_view(request):
     """Asigna un personaje a un nodo (escena) con una posicion."""
@@ -599,7 +795,7 @@ def asignar_personaje_nodo_view(request):
     
     nodo_id = data.get('nodo_id')
     personaje_id = data.get('personaje_id')
-    posicion = data.get('posicion', 'centro')  # izquierda, centro, derecha
+    posicion_raw = (data.get('posicion') or 'centro')
     
     if not all([nodo_id, personaje_id]):
         return JsonResponse({'error': 'nodo_id y personaje_id son requeridos'}, status=400)
@@ -616,6 +812,21 @@ def asignar_personaje_nodo_view(request):
     if nodo.historia_id != personaje.historia_id:
         return JsonResponse({'error': 'El personaje no pertenece a esta historia'}, status=400)
     
+    posicion_normalizada = posicion_raw.strip().lower()
+    mapa_posiciones = {
+        'izquierda': 'izquierda',
+        'izq': 'izquierda',
+        'left': 'izquierda',
+        'centro': 'centro',
+        'center': 'centro',
+        'derecha': 'derecha',
+        'der': 'derecha',
+        'right': 'derecha',
+    }
+    posicion = mapa_posiciones.get(posicion_normalizada)
+    if not posicion:
+        return JsonResponse({'error': 'Posición inválida. Usa izquierda, centro o derecha'}, status=400)
+
     # Crear o actualizar relación
     nodo_personaje, created = NodoPersonaje.objects.update_or_create(
         nodo=nodo,
@@ -656,25 +867,21 @@ def remover_personaje_nodo_view(request, nodo_id, personaje_id):
 
 @require_http_methods(["GET"])
 def historia_detalle_view(request, id_historia):
-    """Obtiene el detalle completo de una historia para editarla."""
-    err = _require_auth(request)
-    if err:
-        return err
-    
+    """Obtiene el detalle de una historia.
+
+    - Si la historia está publicada: acceso público.
+    - Si no está publicada: solo su creador autenticado puede verla.
+    """
     usuario_id = request.session.get('usuario_id')
-    try:
-        historia = Historia.objects.select_related('creador', 'nodo_inicio').get(
-            id_historia=id_historia, 
-            creador_id=usuario_id
-        )
-    except Historia.DoesNotExist:
+
+    historia = Historia.objects.select_related('creador', 'nodo_inicio', 'portada').filter(id_historia=id_historia).first()
+    if not historia:
         return JsonResponse({'error': 'Historia no encontrada'}, status=404)
-    
-    # Función auxiliar para asegurar URL absoluta
-    def ensure_absolute_url(url):
-        if url and not url.startswith('http'):
-            return f"http://localhost:8000{url}"
-        return url
+
+    # Acceso público solo a publicadas. No publicadas: únicamente el creador.
+    if not historia.publicada:
+        if not usuario_id or historia.creador_id != usuario_id:
+            return JsonResponse({'error': 'Historia no encontrada'}, status=404)
     
     # Obtener nodos con sus opciones
     nodos = []
@@ -693,7 +900,7 @@ def historia_detalle_view(request, id_historia):
             personajes_nodo.append({
                 'id': nodo_personaje.personaje.id_personaje,
                 'nombre': nodo_personaje.personaje.nombre,
-                'imagen_url': ensure_absolute_url(nodo_personaje.personaje.imagen.url) if nodo_personaje.personaje.imagen else None,
+                'imagen_url': _ensure_absolute_url(nodo_personaje.personaje.imagen.url) if nodo_personaje.personaje.imagen else None,
                 'posicion': nodo_personaje.posicion,
             })
         
@@ -702,8 +909,8 @@ def historia_detalle_view(request, id_historia):
             'titulo': nodo.titulo_nodo,
             'texto': nodo.texto,
             'es_final': nodo.es_final,
-            'imagen_escenario_url': ensure_absolute_url(nodo.imagen_escenario.url) if nodo.imagen_escenario else None,
-            'audio_fondo_url': ensure_absolute_url(nodo.audio_fondo.url) if nodo.audio_fondo else None,
+            'imagen_escenario_url': _ensure_absolute_url(nodo.imagen_escenario.url) if nodo.imagen_escenario else None,
+            'audio_fondo_url': _ensure_absolute_url(nodo.audio_fondo.url) if nodo.audio_fondo else None,
             'opciones': opciones,
             'personajes': personajes_nodo,
         })
@@ -714,7 +921,7 @@ def historia_detalle_view(request, id_historia):
         personajes.append({
             'id': personaje.id_personaje,
             'nombre': personaje.nombre,
-            'imagen_url': ensure_absolute_url(personaje.imagen.url) if personaje.imagen else None,
+            'imagen_url': _ensure_absolute_url(personaje.imagen.url) if personaje.imagen else None,
         })
     
     return JsonResponse({
@@ -723,9 +930,72 @@ def historia_detalle_view(request, id_historia):
             'titulo': historia.titulo,
             'descripcion': historia.descripcion,
             'publicada': historia.publicada,
+            'portada_id': historia.portada_id,
+            'portada_url': _ensure_absolute_url(historia.portada.url) if historia.portada else None,
             'nodo_inicio_id': historia.nodo_inicio_id,
             'nodos': nodos,
             'personajes': personajes,
+        }
+    })
+
+
+@csrf_exempt
+@require_http_methods(["PATCH"])
+def actualizar_historia_view(request, id_historia):
+    """Actualiza información básica de la historia (título, descripción, portada)."""
+    err = _require_auth(request)
+    if err:
+        return err
+
+    usuario_id = request.session.get('usuario_id')
+    try:
+        historia = Historia.objects.select_related('portada').get(id_historia=id_historia, creador_id=usuario_id)
+    except Historia.DoesNotExist:
+        return JsonResponse({'error': 'Historia no encontrada'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    updated_fields = []
+
+    if 'titulo' in data:
+        titulo = (data.get('titulo') or '').strip()
+        if not titulo:
+            return JsonResponse({'error': 'El título es requerido'}, status=400)
+        historia.titulo = titulo
+        updated_fields.append('titulo')
+
+    if 'descripcion' in data:
+        historia.descripcion = (data.get('descripcion') or '').strip()
+        updated_fields.append('descripcion')
+
+    if 'portada_id' in data:
+        portada_id = data.get('portada_id')
+        if portada_id in (None, ''):
+            historia.portada = None
+        else:
+            try:
+                historia.portada = Imagen.objects.get(id_imagen=portada_id)
+            except Imagen.DoesNotExist:
+                return JsonResponse({'error': 'La portada seleccionada no existe'}, status=400)
+        updated_fields.append('portada')
+
+    if not updated_fields:
+        return JsonResponse({'error': 'No hay campos para actualizar'}, status=400)
+
+    historia.save(update_fields=updated_fields)
+
+    return JsonResponse({
+        'mensaje': 'Historia actualizada exitosamente',
+        'historia': {
+            'id': historia.id_historia,
+            'titulo': historia.titulo,
+            'descripcion': historia.descripcion,
+            'publicada': historia.publicada,
+            'portada_id': historia.portada_id,
+            'portada_url': _ensure_absolute_url(historia.portada.url) if historia.portada else None,
         }
     })
 

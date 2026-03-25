@@ -8,10 +8,12 @@ export default function CreateStory() {
   const [paso, setPaso] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [portada, setPortada] = useState({ file: null, preview: null });
   
   // Datos de la historia
   const [historia, setHistoria] = useState({ titulo: '', descripcion: '' });
   const [historiaId, setHistoriaId] = useState(null);
+  const [primeraEscenaId, setPrimeraEscenaId] = useState(null);
   
   // Datos del primer nodo
   const [nodo, setNodo] = useState({ 
@@ -27,8 +29,40 @@ export default function CreateStory() {
   const [nuevoPersonaje, setNuevoPersonaje] = useState({
     nombre: '',
     imagenFile: null,
-    imagenPreview: null
+    imagenPreview: null,
+    posicion: 'centro'
   });
+
+  function readAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function subirImagen(file, tipo, descripcion) {
+    const imagenBase64 = await readAsDataURL(file);
+    const res = await fetch(`${API_BASE}/imagenes/subir/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        imagen: imagenBase64,
+        tipo,
+        descripcion,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Error al subir imagen');
+    }
+
+    const data = await res.json();
+    return data.imagen.id;
+  }
 
   // Paso 1: Crear historia básica
   async function handleCrearHistoria(e) {
@@ -37,11 +71,19 @@ export default function CreateStory() {
     setError('');
     
     try {
+      let portadaId = null;
+      if (portada.file) {
+        portadaId = await subirImagen(portada.file, 'portada', historia.titulo || 'Portada de historia');
+      }
+
       const res = await fetch(`${API_BASE}/historias/crear/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(historia)
+        body: JSON.stringify({
+          ...historia,
+          portada_id: portadaId,
+        })
       });
       
       if (!res.ok) {
@@ -111,6 +153,8 @@ export default function CreateStory() {
         throw new Error(data.error || 'Error al crear escena');
       }
       
+      const data = await res.json();
+      setPrimeraEscenaId(data.nodo.id);
       setPaso(3);
     } catch (err) {
       setError(err.message);
@@ -172,8 +216,34 @@ export default function CreateStory() {
       }
       
       const data = await res.json();
-      setPersonajes([...personajes, { ...data.personaje, imagen: nuevoPersonaje.imagenPreview }]);
-      setNuevoPersonaje({ nombre: '', imagenFile: null, imagenPreview: null });
+
+      if (primeraEscenaId) {
+        const resAsignacion = await fetch(`${API_BASE}/nodos/personajes/asignar/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            nodo_id: primeraEscenaId,
+            personaje_id: data.personaje.id,
+            posicion: nuevoPersonaje.posicion,
+          }),
+        });
+
+        if (!resAsignacion.ok) {
+          const asignacionData = await resAsignacion.json().catch(() => ({}));
+          throw new Error(asignacionData.error || 'El personaje se creó, pero falló la asignación a la primera escena');
+        }
+      }
+
+      setPersonajes([
+        ...personajes,
+        {
+          ...data.personaje,
+          imagen: nuevoPersonaje.imagenPreview,
+          posicion: nuevoPersonaje.posicion,
+        },
+      ]);
+      setNuevoPersonaje({ nombre: '', imagenFile: null, imagenPreview: null, posicion: 'centro' });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -188,6 +258,16 @@ export default function CreateStory() {
         ...nodo,
         imagenFile: file,
         imagenPreview: URL.createObjectURL(file)
+      });
+    }
+  }
+
+  function handlePortadaHistoria(e) {
+    const file = e.target.files[0];
+    if (file) {
+      setPortada({
+        file,
+        preview: URL.createObjectURL(file),
       });
     }
   }
@@ -280,6 +360,24 @@ export default function CreateStory() {
                     placeholder="Describe de qué trata tu historia..."
                   />
                 </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Portada (opcional)</label>
+                  <input
+                    type="file"
+                    className="form-control"
+                    accept="image/*"
+                    onChange={handlePortadaHistoria}
+                  />
+                  {portada.preview && (
+                    <img
+                      src={portada.preview}
+                      alt="Preview portada"
+                      className="mt-2 rounded"
+                      style={{ maxWidth: '100%', maxHeight: 220, objectFit: 'cover' }}
+                    />
+                  )}
+                </div>
                 
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                   {loading ? 'Creando...' : 'Siguiente →'}
@@ -364,7 +462,7 @@ export default function CreateStory() {
             <div className="card-body">
               <h5 className="card-title mb-3">Personajes</h5>
               <p className="text-muted small mb-3">
-                Agrega los personajes que aparecerán en tu historia. Puedes agregar más personajes después.
+                Agrega personajes y su posición en la primera escena. También podrás agregar más personajes después en edición.
               </p>
               
               {/* Lista de personajes agregados */}
@@ -383,6 +481,7 @@ export default function CreateStory() {
                           />
                         )}
                         <span className="small">{p.nombre}</span>
+                        <span className="badge bg-secondary">{p.posicion || 'centro'}</span>
                       </div>
                     ))}
                   </div>
@@ -420,6 +519,19 @@ export default function CreateStory() {
                       style={{ maxWidth: 150, maxHeight: 150, objectFit: 'cover' }}
                     />
                   )}
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Posición en la primera escena</label>
+                  <select
+                    className="form-select"
+                    value={nuevoPersonaje.posicion}
+                    onChange={(e) => setNuevoPersonaje({ ...nuevoPersonaje, posicion: e.target.value })}
+                  >
+                    <option value="izquierda">Izquierda</option>
+                    <option value="centro">Centro</option>
+                    <option value="derecha">Derecha</option>
+                  </select>
                 </div>
                 
                 <button 

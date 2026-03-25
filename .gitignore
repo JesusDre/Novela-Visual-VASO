@@ -1,0 +1,59 @@
+# =========================
+# Python / Django
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+ENV/
+
+# Distribucion / empaquetado
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs y archivos temporales
+*.log
+*.tmp
+*.temp
+
+# Base de datos local de Django
+*.sqlite3
+
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Archivos estaticos recopilados por collectstatic
+novela_visual/staticfiles/
+
+# =========================
+# Node / Vite / Frontend
+# =========================
+novela_visual_frontend/node_modules/
+novela_visual_frontend/dist/
+novela_visual_frontend/.vite/
+novela_visual_frontend/npm-debug.log*
+novela_visual_frontend/yarn-debug.log*
+novela_visual_frontend/yarn-error.log*
+novela_visual_frontend/pnpm-debug.log*
+
+# =========================
+# Editor / IDE
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Sistema operativo
+# =========================
+.DS_Store
+Thumbs.db

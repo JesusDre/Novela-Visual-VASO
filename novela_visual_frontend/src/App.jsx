@@ -83,11 +83,7 @@ export default function App() {
       />
       <Route
         path="/historias/:id/jugar"
-        element={
-          <ProtectedRoute usuario={usuario}>
-            <StoryPlayer />
-          </ProtectedRoute>
-        }
+        element={<StoryPlayer />}
       />
       <Route
         path="/admin/*"
